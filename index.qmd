@@ -1,0 +1,199 @@
+---
+title: "EDA automático"
+subtitle: "Dengue en el Perú · Registros notificados 2000–2024"
+author: "Ciencia de Datos e IA Aplicada — análisis del grupo"
+lang: es
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    code-summary: "Código"
+    embed-resources: true
+    df-print: paged
+    number-sections: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+::: {.callout-important}
+## Alcance y confidencialidad
+Este documento reproduce la **estructura de ocho secciones** del EDA automático proporcionado como referencia. Se calcula a partir de **tablas agregadas** generadas localmente con el CSV `dengue_original.csv`, que **no se debe publicar**. Los datos son **registros notificados**, no tasas de incidencia ni probabilidades de enfermar. Las cifras sobre variables derivadas (edad estandarizada) dependen de las reglas explícitas de limpieza.
+:::
+
+```{r}
+#| label: configuracion
+options(scipen = 999)
+archivo <- function(nombre) read.csv(file.path('data',nombre), check.names=FALSE, stringsAsFactors=FALSE, fileEncoding='UTF-8')
+est <- archivo('estructura.csv')
+calidad <- archivo('calidad.csv')
+resp <- archivo('respuesta.csv')
+nums <- archivo('numericas.csv')
+correl <- archivo('correlaciones.csv')
+formato <- function(x, digs=1) format(round(x,digs),big.mark=' ',decimal.mark=',',trim=TRUE,nsmall=digs)
+```
+
+## 1. Estructura
+
+El archivo de origen representa notificaciones de dengue y la variable respuesta es `enfermedad` (tres categorías). Se analiza el contenido original sin eliminar registros idénticos.
+
+```{r}
+#| label: estructura
+k <- data.frame(
+  Elemento=c('Archivo original','Casos (filas)','Variables originales','Respuesta','Tipo de respuesta','Periodo'),
+  Valor=c('dengue_original.csv',formato(est$casos,0),est$variables,'enfermedad','Categórica (3 clases)',paste(est$anio_min,est$anio_max,sep='–'))
+)
+knitr::kable(k)
+```
+
+## 2. Calidad de los datos
+
+### Duplicados y valores faltantes
+
+```{r}
+#| label: calidad
+cat('Filas idénticas por las 14 variables:',formato(est$duplicados_exactos,0),'\n\n')
+cat('Variables con al menos un faltante:',sum(calidad$faltantes>0),'\n\n')
+knitr::kable(calidad[order(-calidad$porcentaje),c('variable','faltantes','porcentaje')],digits=2,col.names=c('Variable','Faltantes','% faltante'))
+```
+
+::: {.callout-warning}
+## Decisión sobre duplicados
+Los registros idénticos **no se borraron**. Sin un identificador individual, podrían corresponder a distintas notificaciones con características iguales. Se necesita una regla epidemiológica de deduplicación antes de eliminarlos.
+:::
+
+La edad se estandariza según `tipo_edad`: años (`A`), meses (`M`) o días (`D`); las edades negativas o mayores de 110 años quedan como faltantes **solo en la variable derivada**. Casos detectados: **`r formato(est$edades_invalidas,0)`**. Esto no altera el valor original de `edad`.
+
+## 3. Variable respuesta
+
+```{r}
+#| label: respuesta-tabla
+resp$porcentaje <- 100*resp$proporcion
+knitr::kable(resp[,c('categoria','n','porcentaje')],digits=2,col.names=c('Clasificación','Registros','%'))
+```
+
+```{r}
+#| label: respuesta-grafico
+#| fig-cap: "Distribución de los registros según clasificación clínica"
+#| fig-width: 8
+#| fig-height: 4.5
+op <- par(mar=c(8,4,2,1))
+barplot(resp$n, names.arg=gsub('DENGUE ','',resp$categoria),las=2, col='#003865',ylab='Registros notificados',cex.names=.8)
+par(op)
+```
+
+La categoría mayoritaria es dengue sin signos de alarma. Existe **desbalance marcado de clases**, especialmente en dengue grave; por ello, un modelo de clasificación no debe evaluarse solo con exactitud.
+
+## 4. Variables numéricas
+
+Las variables numéricas analizadas son `ano`, `semana` y `edad_anios` (derivada). Códigos como `ubigeo` y `diresa` son identificadores o categorías, **no magnitudes continuas**.
+
+```{r}
+#| label: numericas-tabla
+knitr::kable(nums[,c('variable','media','mediana','desv','minimo','maximo','asimetria','faltantes')],digits=3,col.names=c('Variable','Media','Mediana','Desv.','Mín.','Máx.','Asimetría','Faltantes'))
+```
+
+```{r}
+#| label: num-graficos
+#| fig-cap: "Distribución temporal y por grupos de edad"
+#| fig-width: 9
+#| fig-height: 4.7
+par(mfrow=c(1,2),mar=c(7,4,3,1))
+a <- archivo('categorica_ano.csv'); plot(as.integer(a$categoria),a$n,type='b',pch=19,col='#003865',xlab='Año',ylab='Casos notificados',main='Registros por año')
+e <- archivo('categorica_grupo_edad.csv'); barplot(e$n,names.arg=e$categoria,las=2,col='#003865',ylab='Registros',main='Edad estandarizada')
+par(mfrow=c(1,1))
+```
+
+Las distribuciones reflejan recuentos entre notificaciones; **no** incidencia por año o edad.
+
+## 5. Relación con la variable respuesta
+
+En el reporte de referencia se estudian diferencias entre predictores y clases. Aquí se presentan **comparaciones descriptivas agregadas** de la edad con las categorías clínicas; no se calculan pruebas individuales a partir de los microdatos publicados.
+
+```{r}
+#| label: edad-respuesta
+edad_resp <- archivo('edad_por_respuesta.csv')
+knitr::kable(edad_resp,digits=2,col.names=c('Clasificación','n edad válida','Edad media (años)','Mediana (años)','Desv.'))
+```
+
+```{r}
+#| label: sexo-respuesta
+s <- archivo('cruce_sexo.csv')
+knitr::kable(s,caption='Distribución de la clasificación clínica por sexo (conteos)')
+```
+
+**Interpretación:** las diferencias observadas no deben interpretarse como efectos causales. La categoría `diagnostic` reproduce la respuesta `enfermedad` y debe excluirse de cualquier modelo que pretenda predecirla, para evitar fuga de información.
+
+## 6. Correlaciones entre predictoras
+
+Se muestran correlaciones descriptivas entre año, semana epidemiológica y edad estandarizada. No se correlacionan identificadores territoriales numéricos.
+
+```{r}
+#| label: correlaciones
+knitr::kable(correl,digits=3)
+```
+
+```{r}
+#| label: correlaciones-grafico
+#| fig-cap: "Matriz de correlaciones de las variables numéricas seleccionadas"
+#| fig-width: 6
+#| fig-height: 4.8
+m <- as.matrix(correl[,-1]);rownames(m) <- correl$variable
+image(seq_len(nrow(m)),seq_len(ncol(m)),m,zlim=c(-1,1),col=colorRampPalette(c('#B85D5D','white','#003865'))(100),axes=FALSE,xlab='',ylab='')
+axis(1,at=seq_len(nrow(m)),labels=rownames(m));axis(2,at=seq_len(ncol(m)),labels=colnames(m),las=2)
+for(i in seq_len(nrow(m))) for(j in seq_len(ncol(m))) text(i,j,sprintf('%.2f',m[i,j]),cex=.9)
+```
+
+Estas correlaciones no constituyen una prueba de independencia ni demuestran causalidad.
+
+## 7. Variables categóricas
+
+```{r}
+#| label: categoricas
+for(v in c('sexo','tipo_edad','departamento')) {
+  cat('\n\n### ',v,'\n\n',sep='')
+  z <- archivo(paste0('categorica_',v,'.csv'))
+  z <- z[order(-z$n),]
+  print(knitr::kable(head(z,25),digits=3,col.names=c('Categoría','n','Proporción')))
+  cat('\n\n')
+}
+```
+
+La distribución territorial refleja el número de notificaciones registradas, **no tasas comparables de riesgo**, dado que no se dispone de denominadores poblacionales ni se han ajustado variaciones históricas de vigilancia.
+
+## 8. Alertas automáticas
+
+Las alertas señalan puntos que requieren **decisiones documentadas**; no implican que un algoritmo pueda resolverlos automáticamente.
+
+```{r}
+#| label: alertas
+alertas <- data.frame(tipo=character(),variable=character(),detalle=character())
+agregar <- function(tipo,variable,detalle) data.frame(tipo=tipo,variable=variable,detalle=detalle)
+for(i in seq_len(nrow(calidad))) if(calidad$porcentaje[i]>5) alertas<-rbind(alertas,agregar('Faltantes',calidad$variable[i],paste0(formato(calidad$porcentaje[i],1),'% faltante; revisar causa y aplicación antes de imputar')))
+for(i in seq_len(nrow(nums))) if(is.finite(nums$asimetria[i])&&abs(nums$asimetria[i])>1) alertas<-rbind(alertas,agregar('Asimetría',nums$variable[i],paste('Asimetría',formato(nums$asimetria[i],2),'; valorar análisis por periodo o transformación')))
+alertas<-rbind(alertas,agregar('Identificadores','diagnostic','Codifica la respuesta: excluir de predictores por fuga de información'))
+alertas<-rbind(alertas,agregar('Duplicados','filas repetidas',paste(formato(est$duplicados_exactos,0),'registros idénticos: no eliminar sin identificador único')))
+alertas<-rbind(alertas,agregar('Calidad de edad','edad_anios',paste(formato(est$edades_invalidas,0),'valores fuera de rango al estandarizar unidades')))
+alertas<-rbind(alertas,agregar('Desbalance','enfermedad','Dengue grave es minoritario; considerar macro-F1, sensibilidad por clase y calibración'))
+knitr::kable(alertas)
+```
+
+::: {.callout-tip collapse="true"}
+## Prompt listo para copiar: tratamiento de alertas con IA
+Soy investigador de posgrado. A partir de esta tabla agregada de alertas de calidad para notificaciones de dengue en el Perú, propón para cada fila una acción de tratamiento, una alternativa, un riesgo metodológico y cómo verificar la decisión. No presupongas que las filas duplicadas son pacientes repetidos. No sugieras publicar microdatos ni interpretar los conteos como incidencia. Diferencia datos no aplicables de datos faltantes, y evita fuga de información por `diagnostic`.
+:::
+
+### Registro de decisiones
+
+1. **Mantener los duplicados** hasta conocer identificadores y reglas del sistema de vigilancia.
+2. **Conservar los faltantes** de localidad y códigos de localidad; no inventar localizaciones.
+3. **Usar `edad_anios`** solo cuando las unidades y el rango resulten consistentes.
+4. **No usar `diagnostic`** como predictor de `enfermedad`.
+5. **No publicar el original** en GitHub; regenerar los resúmenes localmente cuando el archivo cambie.
+
+### Reproducibilidad
+
+El código que generó las tablas se encuentra en `scripts/generar_resumen.py`. Para regenerarlas de forma local: `python scripts/generar_resumen.py dengue_original.csv data`. La publicación automática ejecuta este documento a partir de las tablas agregadas. No recalcula resúmenes del CSV original dentro de GitHub, porque ese archivo se mantiene privado.

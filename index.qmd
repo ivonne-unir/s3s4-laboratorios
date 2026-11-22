@@ -21,7 +21,7 @@ execute:
 
 ::: {.callout-important}
 ## Alcance y confidencialidad
-Este documento reproduce la **estructura de ocho secciones** del EDA automático proporcionado como referencia. Se calcula a partir de **tablas agregadas** generadas localmente con el CSV `dengue_original.csv`, que **no se debe publicar**. Los datos son **registros notificados**, no tasas de incidencia ni probabilidades de enfermar. Las cifras sobre variables derivadas (edad estandarizada) dependen de las reglas explícitas de limpieza.
+Este documento reproduce la **estructura de ocho secciones** del EDA automático proporcionado como referencia. Se calcula a partir de **tablas agregadas derivadas de la base depurada** `dengue_limpio_individual_NO_PUBLICAR.csv`, que **no se debe publicar**. Los datos son **registros notificados**, no tasas de incidencia ni probabilidades de enfermar. Las cifras sobre variables derivadas (edad estandarizada) dependen de las reglas explícitas de limpieza.
 :::
 
 ```{r}
@@ -38,13 +38,13 @@ formato <- function(x, digs=1) format(round(x,digs),big.mark=' ',decimal.mark=',
 
 ## 1. Estructura
 
-El archivo de origen representa notificaciones de dengue y la variable respuesta es `enfermedad` (tres categorías). Se analiza el contenido original sin eliminar registros idénticos.
+La base depurada conserva todos los registros de notificación y la variable respuesta es `enfermedad` (tres categorías). El análisis proviene de la base depurada; los registros idénticos fueron marcados, pero no eliminados sin evidencia de duplicación de pacientes.
 
 ```{r}
 #| label: estructura
 k <- data.frame(
   Elemento=c('Archivo original','Casos (filas)','Variables originales','Respuesta','Tipo de respuesta','Periodo'),
-  Valor=c('dengue_original.csv',formato(est$casos,0),est$variables,'enfermedad','Categórica (3 clases)',paste(est$anio_min,est$anio_max,sep='–'))
+  Valor=c('dengue_limpio_individual_NO_PUBLICAR.csv',formato(est$casos,0),est$variables,'enfermedad','Categórica (3 clases)',paste(est$anio_min,est$anio_max,sep='–'))
 )
 knitr::kable(k)
 ```
@@ -65,7 +65,7 @@ knitr::kable(calidad[order(-calidad$porcentaje),c('variable','faltantes','porcen
 Los registros idénticos **no se borraron**. Sin un identificador individual, podrían corresponder a distintas notificaciones con características iguales. Se necesita una regla epidemiológica de deduplicación antes de eliminarlos.
 :::
 
-La edad se estandariza según `tipo_edad`: años (`A`), meses (`M`) o días (`D`); las edades negativas o mayores de 110 años quedan como faltantes **solo en la variable derivada**. Casos detectados: **`r formato(est$edades_invalidas,0)`**. Esto no altera el valor original de `edad`.
+En la base depurada, `edad_anios` ya está estandarizada según `tipo_edad` (años, meses o días), y `edad_invalida` identifica edades fuera del rango aceptado. Se conserva el valor original en `edad`. Casos detectados: **`r formato(est$edades_invalidas,0)`**. Esto no altera el valor original de `edad`.
 
 ## 3. Variable respuesta
 
@@ -196,4 +196,4 @@ Soy investigador de posgrado. A partir de esta tabla agregada de alertas de cali
 
 ### Reproducibilidad
 
-El código que generó las tablas se encuentra en `scripts/generar_resumen.py`. Para regenerarlas de forma local: `python scripts/generar_resumen.py dengue_original.csv data`. La publicación automática ejecuta este documento a partir de las tablas agregadas. No recalcula resúmenes del CSV original dentro de GitHub, porque ese archivo se mantiene privado.
+El código que generó las tablas se encuentra en `scripts/generar_resumen.py`. Para regenerarlas de forma local: `python scripts/generar_resumen.py dengue_limpio_individual_NO_PUBLICAR.csv data`. La publicación automática ejecuta este documento a partir de las tablas agregadas. No recalcula resúmenes del CSV original dentro de GitHub, porque ese archivo se mantiene privado.

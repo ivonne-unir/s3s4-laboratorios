@@ -1,0 +1,64 @@
+{
+  "archivo_entrada": "/mnt/data/dengue_original.csv",
+  "filas_originales": 1029421,
+  "columnas_originales": 14,
+  "variables": [
+    "departamento",
+    "provincia",
+    "distrito",
+    "localidad",
+    "enfermedad",
+    "ano",
+    "semana",
+    "diagnostic",
+    "diresa",
+    "ubigeo",
+    "localcod",
+    "edad",
+    "tipo_edad",
+    "sexo"
+  ],
+  "anos": [
+    2000,
+    2024
+  ],
+  "duplicados_exactos_no_eliminados": 152737,
+  "faltantes_originales": {
+    "departamento": 0,
+    "provincia": 0,
+    "distrito": 0,
+    "localidad": 122598,
+    "enfermedad": 0,
+    "ano": 0,
+    "semana": 0,
+    "diagnostic": 0,
+    "diresa": 23,
+    "ubigeo": 0,
+    "localcod": 148641,
+    "edad": 0,
+    "tipo_edad": 0,
+    "sexo": 0
+  },
+  "edad_invalida": 28,
+  "codigo_inconsistente": 0,
+  "semana_invalida": 0,
+  "sexo_invalido": 0,
+  "grupos_anonimizados_publicados": 223,
+  "grupos_total_antes_filtro": 350,
+  "registros_incluidos_en_grupos": 970083,
+  "registros_fuera_de_grupos": 59338,
+  "casos_por_tipo": {
+    "DENGUE SIN SIGNOS DE ALARMA": 915243,
+    "DENGUE CON SIGNOS DE ALARMA": 110166,
+    "DENGUE GRAVE": 4012
+  },
+  "sha256_original": "35ec0840afa486992fa552a5762fd19eed332b06a2f1d0ea58af73c95bf6fd71",
+  "decisiones": [
+    "Conservar duplicados por falta de ID único",
+    "No imputar edad imposible; indicar NA en edad_anios",
+    "Conservar enfermedad y diagnostic sin sobreescribir",
+    "No convertir conteos de casos en incidencia sin denominador poblacional",
+    "Excluir datos individuales y ubicaciones finas del paquete público",
+    "No evaluar predicción clínica sin controles externos y temporalidad"
+  ]
+}

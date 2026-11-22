@@ -1,0 +1,11 @@
+# Datos individuales y grandes: NO subir al repositorio
+/dengue_original.csv
+/data/dengue_limpio_individual_NO_PUBLICAR.csv
+**/dengue_original.csv
+**/dengue_limpio_individual_NO_PUBLICAR.csv
+_site/
+.quarto/
+.Rproj.user/
+.Rhistory
+__pycache__/
+*.pyc

@@ -1,0 +1,15 @@
+project:
+  type: website
+  output-dir: _site
+website:
+  title: "Taller de dengue | Ciencia de Datos e IA"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Informe
+format:
+  html:
+    theme: cosmo
+    toc: true
+execute:
+  freeze: false

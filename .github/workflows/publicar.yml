@@ -19,7 +19,8 @@ jobs:
         with:
           use-public-rspm: true
       - name: Instalar paquetes R
-        run: Rscript -e 'install.packages(c("knitr", "rmarkdown"), repos="https://cloud.r-project.org")'
+        run: Rscript -e 'install.packages(c("knitr", "rmarkdown"), repos="https://cloud.r-project.org", lib=.libPaths()[1])'
+             Rscript -e 'stopifnot(requireNamespace("knitr", quietly=TRUE), requireNamespace("rmarkdown", quietly=TRUE))'
       - uses: quarto-dev/quarto-actions/setup@v2
       - name: Renderizar HTML
         run: quarto render index.qmd --to html
